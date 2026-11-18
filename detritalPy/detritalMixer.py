@@ -114,10 +114,17 @@ def resample_and_perturb_datesErrors(dates, errors, n=None, random_state=None):
 
     return dates_rs, errors_rs
 
-def perturb_by_normal_distribution(means, std_dev, random_state=None):
+def perturb_by_normal_distribution(means, std_dev, random_state=None, max_redraw_passes=100):
     '''
     This function perturbs a series of mean values by a random amount drawn
-    from a normal distribution with the specified standard deviations
+    from a normal distribution with the specified standard deviations.
+
+    Ages cannot be negative, so any non-positive draw is redrawn (only the
+    failing entries), which is equivalent to sampling from a normal
+    distribution truncated at zero. Grains whose uncertainty does not reach
+    zero are unaffected. Young grains whose errors exceed their ages would
+    otherwise produce negative ages, and with a fixed numeric bandwidth
+    KDEpy's FFTKDE raises "Every data point must be inside of the grid."
 
     Parameters
     ----------
@@ -127,19 +134,32 @@ def perturb_by_normal_distribution(means, std_dev, random_state=None):
         standard deviations associated with each mean.
     random_state : int, numpy.random.Generator, numpy.random.RandomState, optional
         Seed or random-number generator used for perturbation. The default is None.
+    max_redraw_passes : int, optional
+        Safety cap on redraw passes for non-positive values. The default is 100.
 
     Returns
     -------
     means_pert : np.ndarray
         original mean values summed with random values drawn from a normal distribution with the standard deviation
-        specified in std_dev.
+        specified in std_dev, all strictly greater than zero.
 
     '''
     
     rng = _coerce_rng(random_state)
+    means = np.asarray(means, dtype=float)
+    std_dev = np.broadcast_to(np.asarray(std_dev, dtype=float), means.shape)
     means_pert = means + std_dev*rng.standard_normal(len(means))
-    
-    return means_pert
+
+    for _ in range(max_redraw_passes):
+        bad = means_pert <= 0
+        if not bad.any():
+            return means_pert
+        means_pert[bad] = means[bad] + std_dev[bad]*rng.standard_normal(int(bad.sum()))
+
+    raise RuntimeError(
+        f"{int((means_pert <= 0).sum())} value(s) still non-positive after "
+        f"{max_redraw_passes} redraw passes; check input ages and errors."
+    )
 
 
 def lookup_functions_for_metric(objective_metric = 'Dmax',
