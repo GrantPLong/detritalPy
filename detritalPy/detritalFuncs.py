@@ -3819,21 +3819,29 @@ def calcKuiper(CDF1, CDF2, nCDF1, nCDF2):
     -----
     Based on Saylor and Sundell, 2016: Geosphere, v. 12, doi:10.1130/GES01237.1
     """    
+    # One-sided CDF deviations, each floored at 0 so V = D+ + D- per Eq 6.
     deltaCDF1 = CDF2 - CDF1
-    maxDeltaCDF1 = np.max(deltaCDF1)
     deltaCDF2 = CDF1 - CDF2
-    maxDeltaCDF2 = np.max(deltaCDF2)
-    V = maxDeltaCDF1 + maxDeltaCDF2
-    ne = (nCDF1*nCDF2)/(nCDF1+nCDF2)
-    Lambda = (np.sqrt(ne) + 0.155 + 0.25/np.sqrt(ne)) * V  
+    maxDeltaCDF1 = max(0.0, np.max(deltaCDF1))   # D-
+    maxDeltaCDF2 = max(0.0, np.max(deltaCDF2))   # D+
+    V = maxDeltaCDF1 + maxDeltaCDF2              # Kuiper statistic
+
+    # Effective sample size and Stephens (1970) argument. Coefficient 0.24 is the
+    # published value (Saylor & Sundell 2016, Eq 8); the archive had 0.25.
+    ne = (nCDF1 * nCDF2) / (nCDF1 + nCDF2)
+    Lambda = (np.sqrt(ne) + 0.155 + 0.24 / np.sqrt(ne)) * V
+
+    # Asymptotic Kuiper tail probability (Eq 7). For small Lambda the series is
+    # unstable, so return 1 explicitly. In the archive this guard was DEAD because
+    # p was overwritten immediately after it.
     if Lambda < 0.4:
-        p = 1
-    j = np.arange(1.,101.)
-    pare = 4*Lambda**2*(j**2)-1
-    expo = np.exp(-2*Lambda**2*(j**2))
-    argo = pare*expo
-    p = 2*np.sum(argo)
-                  
+        p = 1.0
+    else:
+        j = np.arange(1.0, 101.0)
+        p = 2.0 * np.sum((4.0 * Lambda**2 * j**2 - 1.0) *
+                         np.exp(-2.0 * Lambda**2 * j**2))
+
+    p = min(1.0, max(0.0, p))   # clamp truncation error into a valid probability
     return V, p
                   
 def calcR2(dist1, dist2):
