@@ -313,7 +313,7 @@ def ilogexpSS(x):
         y = x
     return y
 
-def ssvkernel(x, tin=None, M=80, nbs=100, WinFunc='Boxcar'):
+def ssvkernel(x, tin=None, M=80, nbs=100, WinFunc='Gauss'):
     """
     Generates a locally adaptive kernel-density estimate for one-dimensional
     data.
