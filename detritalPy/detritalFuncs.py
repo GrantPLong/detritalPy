@@ -22,6 +22,30 @@ from scipy.interpolate import interp1d
 
 # Allows font to be preserved opening in Adobe Illustrator
 import matplotlib 
+
+def resolveOutputPath(fileName, defaultDir='Output'):
+    """
+    Returns the path a file will be written to, and creates its folder.
+
+    Parameters
+    ----------
+    fileName : str or pathlib.Path. A name with a folder in it (absolute, e.g.
+        '/Users/me/results/MDA.csv', or relative, e.g. '../results/MDA.csv') is
+        used exactly as given. A bare name (e.g. 'MDA.csv') is saved in defaultDir,
+        as in earlier versions of detritalPy, and a note saying so is printed.
+    defaultDir : folder used for bare names (default = 'Output')
+
+    Returns
+    -------
+    path : str
+    """
+    path = pathlib.Path(fileName)
+    if path.parent == pathlib.Path('.'):
+        path = pathlib.Path(defaultDir) / path
+        print('Note: no folder given for "%s"; saving to %s' % (fileName, path))
+    path.parent.mkdir(parents=True, exist_ok=True)
+    return str(path)
+
 matplotlib.rcParams['pdf.fonttype'] = 42
 matplotlib.rcParams['ps.fonttype'] = 42
 
@@ -318,7 +342,8 @@ def plotAll(sampleList, ages, errors, numGrains, labels, whatToPlot='both', sepa
     normPlots=False, plotKDE=False, colorKDE=False, colorKDEbyAge=False, plotPDP=True, colorPDP=True, colorPDPbyAge=False, plotColorBar=False, plotHist=False,
     plotLog=False, plotPIE=False, x1=0, x2=4000, b=25, bw=10, xdif=1, agebins=None, agebinsc=None, w=10, c=4, h=5, plotAgePeaks=False, agePeakOptions=None,
     CDFlw=3, KDElw=1, PDPlw=1, plotDepoAge = False, depoAge = [0], plotAgesOnCDF = False, plotHeatMap = False, heatMapType = None, heatMap = 'inferno_r',
-    PDP_ymax = 'Default', KDE_ymax = 'Default', agebinsc_alpha=None, colors='Default', bw_x=None):
+    PDP_ymax = 'Default', KDE_ymax = 'Default', agebinsc_alpha=None, colors='Default', bw_x=None,
+    savePlot=False, fileName='DZageDistributions.pdf', peakFileName='peakAges.csv'):
     """
     Creates a plot of detrital age distributions using a variety of the most common data visualization approaches. The plotting function is divided into a cumulative distribution plot and a relative distribution plot. When both are plotted together, the cumulative distribution is shown on top and the relative distribution for each sample or group of samples is shown below.
 
@@ -373,6 +398,13 @@ def plotAll(sampleList, ages, errors, numGrains, labels, whatToPlot='both', sepa
     Returns
     -------
     fig : a figure with the plotted age distribution(s)
+
+    Saving (optional)
+    -----------------
+    savePlot : set to True to save the figure to fileName (default = False)
+    fileName : where to save the figure; the extension sets the format (.pdf, .png, .svg).
+        A full path saves there; a bare name saves in Output/ (see resolveOutputPath)
+    peakFileName : where plotAgePeaks writes the peak ages CSV (default = 'peakAges.csv')
     
     Notes
     -----
@@ -397,17 +429,19 @@ def plotAll(sampleList, ages, errors, numGrains, labels, whatToPlot='both', sepa
         fig = plotAll_1(sampleList, ages, errors, numGrains, labels, whatToPlot, plotCDF, plotCPDP, plotCKDE, plotDKW, normPlots, plotKDE, 
             colorKDE, colorKDEbyAge, plotPDP, colorPDP, colorPDPbyAge, plotColorBar, plotHist, plotLog, plotPIE, x1, x2, b, bw, xdif, agebins, 
             agebinsc, w, c, plotAgePeaks, agePeakOptions, CDFlw, KDElw, PDPlw, plotDepoAge, depoAge, plotAgesOnCDF, plotHeatMap, heatMapType, heatMap,
-            PDP_ymax, KDE_ymax, agebinsc_alpha, colors, bw_x)
+            PDP_ymax, KDE_ymax, agebinsc_alpha, colors, bw_x, peakFileName=peakFileName)
     else:
         fig = plotAll_2(sampleList, ages, errors, numGrains, labels, whatToPlot, plotCDF, plotCPDP, plotCKDE, plotDKW, normPlots, plotKDE, 
             colorKDE, colorKDEbyAge, plotPDP, colorPDP, colorPDPbyAge, plotColorBar, plotHist, plotLog, plotPIE, x1, x2, b, bw, xdif, agebins, 
             agebinsc, w, c, h, CDFlw, KDElw, PDPlw, plotAgesOnCDF, agebinsc_alpha, colors, bw_x)
+    if savePlot and fig is not None:
+        fig.savefig(resolveOutputPath(fileName))
     return fig
 
 def plotAll_1(sampleList, ages, errors, numGrains, labels, whatToPlot, plotCDF, plotCPDP, plotCKDE, plotDKW, normPlots, plotKDE, colorKDE, 
     colorKDEbyAge, plotPDP, colorPDP, colorPDPbyAge, plotColorBar, plotHist, plotLog, plotPIE, x1, x2, b, bw, xdif, agebins, agebinsc, w, c, 
     plotAgePeaks, agePeakOptions, CDFlw, KDElw, PDPlw, plotDepoAge, depoAge, plotAgesOnCDF, plotHeatMap, heatMapType, heatMap, PDP_ymax, KDE_ymax,
-    agebinsc_alpha, colors, bw_x):
+    agebinsc_alpha, colors, bw_x, peakFileName='peakAges.csv'):
 
     if isinstance(x1, list): # Log plot not available with split axis plot
         dx_myr = np.asarray(x2)-np.asarray(x1) # Myr in each portion of x-axis
@@ -701,8 +735,7 @@ def plotAll_1(sampleList, ages, errors, numGrains, labels, whatToPlot, plotCDF, 
                                 else:
                                     if (peakAges[i][j]>x1[h] and peakAges[i][j]<x2[h]): # Only plot the peak age if within plotting range
                                         axKDE.text(x=KDE_age[indexes[i][j]],y=KDE[i][indexes[i][j]]*dx_pct[h], s=np.round(peakAges[i][j],num_after_point(xdif)), size='x-small')                                
-                        pathlib.Path('Output').mkdir(parents=True, exist_ok=True)
-                        exportPeakAge(labels, peakAges, peakAgesGrains, fileName = str('Output/' + 'peakAges.csv'))
+                        exportPeakAge(labels, peakAges, peakAgesGrains, fileName = resolveOutputPath(peakFileName))
                     # Fill the KDE      
                     if colorKDE:
                         axKDE.fill_between(KDE_age, 0, KDE[i]*dx_pct[h], alpha = 1, color=colorMe(i, colors), lw=0)
@@ -776,8 +809,7 @@ def plotAll_1(sampleList, ages, errors, numGrains, labels, whatToPlot, plotCDF, 
                                 for j in range(len(peakAges[i])):
                                     if (peakAges[i][j]>x1[h] and peakAges[i][j]<x2[h]): # Only plot the peak age if within plotting range
                                         axPDP.text(x=PDP_age[indexes[i][j]],y=PDP[i][indexes[i][j]]*dx_pct[h], s=np.round(peakAges[i][j],num_after_point(xdif)), size='x-small')                           
-                        pathlib.Path('Output').mkdir(parents=True, exist_ok=True)
-                        exportPeakAge(labels, peakAges, peakAgesGrains, fileName = str('Output/' + 'peakAges.csv'))
+                        exportPeakAge(labels, peakAges, peakAgesGrains, fileName = resolveOutputPath(peakFileName))
                     if colorPDP:
                         axPDP.fill_between(PDP_age, PDP[i]*dx_pct[h], alpha = 1, color=colorMe(i, colors))
                     if colorPDPbyAge:
@@ -1126,7 +1158,8 @@ def plotAll_2(sampleList, ages, errors, numGrains, labels, whatToPlot, plotCDF, 
    
     return fig      
 
-def plotRimsVsCores(main_byid_df, sampleList, ages, errors, labels, x1=0, x2=4000, y1=0, y2=4000, plotLog=False, plotError=False, w=8, c=8, grainIDcol='Grain_ID', rimCoreCol='RimCore', rimID='Rim', coreID='Core', bestAge='BestAge',bestAgeErr='BestAge_err',colors='Default'):
+def plotRimsVsCores(main_byid_df, sampleList, ages, errors, labels, x1=0, x2=4000, y1=0, y2=4000, plotLog=False, plotError=False, w=8, c=8, grainIDcol='Grain_ID', rimCoreCol='RimCore', rimID='Rim', coreID='Core', bestAge='BestAge',bestAgeErr='BestAge_err',colors='Default',
+    savePlot=False, fileName='RimsVsCores.pdf'):
     """
     Creates a plot of rims versus cores.
 
@@ -1252,12 +1285,15 @@ def plotRimsVsCores(main_byid_df, sampleList, ages, errors, labels, x1=0, x2=400
     ax.yaxis.set_ticks_position('right')
     ax.legend(loc="upper left", prop={'size':8})
 
+    if savePlot:
+        figRimCore.savefig(resolveOutputPath(fileName))
     return figRimCore
 
 def plotDouble(sampleList, main_byid_df, ages, errors, numGrains, labels, variableName, plotError, variableError, normPlots, 
     plotKDE, colorKDE, colorKDEbyAge, plotPDP, colorPDP, colorPDPbyAge, plotHist, x1, x2, 
     autoScaleY, y1, y2, b, bw, xdif, agebins, agebinsc, w, t, l, plotLog, plotColorBar, 
-    plotMovingAverage, windowSize, KDElw=1, PDPlw=1, averageType = 'Mean', colors='Default', bw_x=None):
+    plotMovingAverage, windowSize, KDElw=1, PDPlw=1, averageType = 'Mean', colors='Default', bw_x=None,
+    savePlot=False, fileName='plotDouble.pdf'):
     """
     Creates a figure where a numeric variable is plotted above detrital age distributions for each sample or sample group. Examples could include the uranium concentration (U_ppm), the thorium to uranium ratio (Th_U), the epsilon hafnium value (eHf), or the concentration of a trace element.
 
@@ -1539,6 +1575,8 @@ def plotDouble(sampleList, main_byid_df, ages, errors, numGrains, labels, variab
                     axs['{}'.format(i*2)].axvspan(xmin=agebins[j][0],xmax=agebins[j][1], color = agebinsc[j])
         # c = c+t+l
         
+    if savePlot:
+        fig.savefig(resolveOutputPath(fileName))
     return fig
     
 def ageProportionsCSV(ages, errors, numGrains, labels, agebins, fileName):
@@ -1552,7 +1590,7 @@ def ageProportionsCSV(ages, errors, numGrains, labels, agebins, fileName):
     numGrains : array of number of analyses per sample or sample group. Output from sampleToData()
     labels : array of labels for each sample or sample group. Output from sampleToData()
     agebins : array of bin edges (Myr)
-    fileName : name of the output file that will be created
+    fileName : where to write the CSV. A full path saves there; a bare name saves in Output/
     
     Notes
     -----
@@ -1566,9 +1604,7 @@ def ageProportionsCSV(ages, errors, numGrains, labels, agebins, fileName):
     agecategory = []
     agecategoryp = []
     rowLabels = ['Sample','numGrains']
-
-    pathlib.Path('Output').mkdir(parents=True, exist_ok=True) # Recursively creates the directory and does not raise an exception if the directory already exists 
-    with open(str('Output/' + fileName), 'w', newline='') as f: #Select the CSV file to save data to , 'wb'
+    with open(resolveOutputPath(fileName), 'w', newline='') as f: #Select the CSV file to save data to , 'wb'
         writer = csv.writer(f)
 
         # Create category names (age ranges)
@@ -1603,7 +1639,7 @@ def ageProportionsCSV(ages, errors, numGrains, labels, agebins, fileName):
                 data_row = np.append(data_row, histp[j])
             writer.writerow(data_row)
 
-def plotBar(width, height, overlap, main_byid_df, sampleList, ages, numGrains, labels, agebins, agebinsc, separateGroups, savePlot):
+def plotBar(width, height, overlap, main_byid_df, sampleList, ages, numGrains, labels, agebins, agebinsc, separateGroups, savePlot, fileName=None):
     """
     Creates a figure with the age bin proportions are displayed as bar graphs for samples or groups of samples.
 
@@ -1623,6 +1659,10 @@ def plotBar(width, height, overlap, main_byid_df, sampleList, ages, numGrains, l
     agebins : array of bin edges (Myr)
     agebinsc : array of colors that correspond to age bins
     separateGroups : set to True to separate sample groups into individual samples
+    savePlot : set to True to save the figure
+    fileName : (optional) where to save it. A full path saves there; a bare name saves in Output/.
+        With separateGroups, one file is written per group, with the group name added before the
+        extension. Default: Output/BarSamples.pdf, Output/BarGroups.pdf, or Output/Bar_<group>.pdf
 
     Returns
     -------
@@ -1658,8 +1698,11 @@ def plotBar(width, height, overlap, main_byid_df, sampleList, ages, numGrains, l
                 ax.set_yticklabels((sampleList[i][0])) 
                 ax.set_xlim(0.,1.)
                 if savePlot:
-                    pathlib.Path('Output').mkdir(parents=True, exist_ok=True) # Recursively creates the directory and does not raise an exception if the directory already exists 
-                    figBar.savefig(pathlib.Path('Output/') / (('Bar_%s' %sampleList[i][1])+('.pdf')))                      
+                    if fileName is None:
+                        figBar.savefig(resolveOutputPath('Bar_%s.pdf' %sampleList[i][1]))
+                    else: # One file per group: insert the group name before the extension
+                        groupPath = pathlib.Path(fileName)
+                        figBar.savefig(resolveOutputPath(str(groupPath.with_name('%s_%s%s' % (groupPath.stem, sampleList[i][1], groupPath.suffix or '.pdf')))))                      
         else:
             N = len(sampleList) # Number of groups
             figBar, ax = plt.subplots(1, figsize=(2*width,N*(height+1-overlap)))            
@@ -1684,8 +1727,7 @@ def plotBar(width, height, overlap, main_byid_df, sampleList, ages, numGrains, l
             ax.set_yticklabels((labels))             
             ax.set_xlim(0.,1.) 
             if savePlot:
-                pathlib.Path('Output').mkdir(parents=True, exist_ok=True) # Recursively creates the directory and does not raise an exception if the directory already exists 
-                figBar.savefig(pathlib.Path('Output/') / (('BarGroups')+('.pdf')))    
+                figBar.savefig(resolveOutputPath(fileName if fileName is not None else 'BarGroups.pdf'))    
     else:
         N = len(sampleList) # Number of samples in the list
         figBar, ax = plt.subplots(1, figsize=(2*width,N*height))        
@@ -1710,12 +1752,12 @@ def plotBar(width, height, overlap, main_byid_df, sampleList, ages, numGrains, l
         ax.set_yticklabels((labels)) 
         ax.set_xlim(0.,1.)
         if savePlot:
-            pathlib.Path('Output').mkdir(parents=True, exist_ok=True) # Recursively creates the directory and does not raise an exception if the directory already exists 
-            figBar.savefig(pathlib.Path('Output/') / (('BarSamples')+('.pdf')))    
+            figBar.savefig(resolveOutputPath(fileName if fileName is not None else 'BarSamples.pdf'))    
     return figBar
 
 def plotFoliumMap(sampleList, main_byid_df, ages, errors, numGrains, plotMapKDE, plotMapPDP, plotCumulative, 
-    x2, bw, mapType, exportKML, descrpt, stickyPopups = False, width=400, height=100, colors='Default', bw_x=None):
+    x2, bw, mapType, exportKML, descrpt, stickyPopups = False, width=400, height=100, colors='Default', bw_x=None,
+    kmlFileName='samples.kml'):
     """
     Displays sample locations on an interactive map.
 
@@ -1736,6 +1778,8 @@ def plotFoliumMap(sampleList, main_byid_df, ages, errors, numGrains, plotMapKDE,
     bw : KDE bandwidth. Options are 'optimizedFixed', 'optimizedVariable', or a number (bandwidth in Myr)
     mapType : select map background type. Options are 'NatGeo_World_Map', 'World_Street_Map', 'World_Topo_Map', 'World_Light_Gray', 'World_Shaded_Relief', 'World_Terrain_Base', 'World_Hillshade', 'World_Physical_Map'
     colors : (optional) set to a list of colors of samples or sample groups
+
+    kmlFileName : (optional) where exportKML writes the KML (default = 'samples.kml'). A full path saves there; a bare name saves in Output/
 
     Returns
     -------
@@ -1970,12 +2014,12 @@ def plotFoliumMap(sampleList, main_byid_df, ages, errors, numGrains, plotMapKDE,
         feature_group.add_to(m)
         folium.LayerControl().add_to(m)
     if exportKML:
-        pathlib.Path('Output').mkdir(parents=True, exist_ok=True) # Recursively creates the directory and does not raise an exception if the directory already exists 
         ####
-        kml.save(str(pathlib.Path('Output/') / (('samples')+('.kml'))))
+        kml.save(resolveOutputPath(kmlFileName))
     return m
 
-def MDAtoCSV(sampleList, ages, errors, numGrains, labels, fileName, sortBy, barWidth, plotWidth, plotHeight, ageColors, alpha, makePlot, fillMDACalcs):
+def MDAtoCSV(sampleList, ages, errors, numGrains, labels, fileName, sortBy, barWidth, plotWidth, plotHeight, ageColors, alpha, makePlot, fillMDACalcs,
+    savePlot=False, plotFileName='MDAplots.pdf'):
     """
     Note: This function is deprecated as of June 2026 (notebook v. 1.4.3+)
     Plesae use calcMDA_2()
@@ -1994,7 +2038,7 @@ def MDAtoCSV(sampleList, ages, errors, numGrains, labels, fileName, sortBy, barW
     errors : array of errors for each sample or sample group. Output from sampleToData()
     numGrains : array of number of analyses per sample or sample group. Output from sampleToData()
     labels : array of labels for each sample or sample group. Output from sampleToData()
-    fileName : specify the output CSV file name
+    fileName : where to write the CSV. A full path saves there; a bare name saves in Output/
     sortBy : specify how grains are sorted: by best age, best age + 1 sigma error, or best age + 2 sigma error. Options: 'mean', '1sigma', '2sigma'
     barWidth : specify the width of bars
     plotWidth : specify the width of the plot
@@ -2002,6 +2046,8 @@ def MDAtoCSV(sampleList, ages, errors, numGrains, labels, fileName, sortBy, barW
     ageColors : an array of colors of the horizontal bars for YSG, YC1S(2+), and YC2s(3+), respectively
     alpha : specify the transparency of filled 1 sigma confidence limits  
     makePlot : set to True to create a plot of youngest grain analyses and MDA calculations
+    savePlot : (optional) set to True to also save the plot to plotFileName (default = False)
+    plotFileName : (optional) where to save the plot (default = 'MDAplots.pdf'). A full path (e.g. os.path.join(FIG_DIR, 'name.pdf')) saves there; a bare name saves in Output/
     fillMDACalc : set to True to shade each MDA calculation within 1 sigma confidence limits
     sigma : (optional) Specify whether bestAgeErr are 1-sigma or 2-sigma errors. Default is '1sigma', but '2sigma' can also be specified.
 
@@ -2013,10 +2059,8 @@ def MDAtoCSV(sampleList, ages, errors, numGrains, labels, fileName, sortBy, barW
     -----
     """ 
     import csv
-    
-    pathlib.Path('Output').mkdir(parents=True, exist_ok=True) # Recursively creates the directory and does not raise an exception if the directory already exists 
     #####
-    with open(str('Output/' + fileName), 'w', newline='') as f: #Select the CSV file to save data to
+    with open(resolveOutputPath(fileName), 'w', newline='') as f: #Select the CSV file to save data to
         writer = csv.writer(f)
         writer.writerow(('Sample','N', 'YSG', 'YSG_err1s', 'YC1S WM', 'YC1S WM 1serr', 'YC1S WM MSWD', 'YC1S cluster size', 'YC2S WM', 'YC2S WM 1serr', 'YC2S WM MSWD', 'YC2S cluster size'))
         N = len(sampleList) # Number of samples or groups of samples
@@ -2142,6 +2186,8 @@ def MDAtoCSV(sampleList, ages, errors, numGrains, labels, fileName, sortBy, barW
                 ax_i.text(xmin+xdif*0.02, ymax+ydif*-0.21, s=("YC2"+r'$\sigma$'+"(3+): "+str(round(YC2S_WM[0],1))+"$\pm$"+str(round(YC2S_WM[1]/2,2))+" Ma"), fontsize='small', bbox=dict(edgecolor='white', facecolor='white', alpha=0.9), zorder=99)
                 ax_i.text(xmin+xdif*plotWidth*0.05, ymax+ydif*0.02, s=("Calculated uncertainties are reported at the 1"+r'$\sigma$'+" level"), fontsize='small', zorder=99)
         if makePlot:
+            if savePlot:
+                fig.savefig(resolveOutputPath(plotFileName))
             return fig
 
 class MDS_class:
@@ -2363,8 +2409,8 @@ class MDS_class:
         Optional Paramters
         ----------    
         figsize : dimensions of the figure as a tuple (default = (10,10))
-        savePlot : set to True to create a PDF of the plot in the Output folder (default = True)
-        fileName : name of the file being saved, if savePlot == True (default = 'QQplot.pdf')
+        savePlot : set to True to save the plot to fileName (default = True)
+        fileName : where to save the plot, if savePlot == True (default = 'QQplot.pdf'). A full path (e.g. os.path.join(FIG_DIR, 'name.pdf')) saves there; a bare name saves in Output/
         halfMatrix : set to True to only plot half of the matrix (default = True)
 
         Notes
@@ -2396,8 +2442,7 @@ class MDS_class:
                         ax[i,j].set_ylabel(self.sample_labels[i], rotation='horizontal', ha='right')
 
         if savePlot:
-            pathlib.Path('Output').mkdir(parents=True, exist_ok=True) # Recursively creates the directory and does not raise an exception if the directory already exists 
-            figQQ.savefig('Output/'+fileName)
+            figQQ.savefig(resolveOutputPath(fileName))
 
         figQQ.subplots_adjust(wspace=0)
         figQQ.subplots_adjust(hspace=0)
@@ -2413,8 +2458,8 @@ class MDS_class:
         Optional Paramters
         ----------    
         figsize : dimensions of the figure as a tuple (default = (10,10))
-        savePlot : set to True to create a PDF of the plot in the Output folder (default = True)
-        fileName : name of the file being saved, if savePlot == True (default = 'HeatMapPlot.pdf')
+        savePlot : set to True to save the plot to fileName (default = True)
+        fileName : where to save the plot, if savePlot == True (default = 'HeatMapPlot.pdf'). A full path (e.g. os.path.join(FIG_DIR, 'name.pdf')) saves there; a bare name saves in Output/
         plotValues : set to True to plot dissimilarity values on the heatmap
         plotType : selects whether to plot dissimilarity metric values or MDS distance values. options: 'dissimilarity' or 'distance' (default = 'dissimilarity')
 
@@ -2450,8 +2495,7 @@ class MDS_class:
         plt.setp(ax.get_xticklabels(), rotation=90, ha="right",
                  rotation_mode="anchor")
         if savePlot:
-            pathlib.Path('Output').mkdir(parents=True, exist_ok=True) # Recursively creates the directory and does not raise an exception if the directory already exists 
-            figHeatMap.savefig('Output/'+fileName)
+            figHeatMap.savefig(resolveOutputPath(fileName))
 
     def stressPlot(self, figsize=(6,6), savePlot=True, fileName='stressPlot.pdf', stressType='sklearn'):
         """
@@ -2464,8 +2508,8 @@ class MDS_class:
         Optional Paramters
         ----------    
         figsize : dimensions of the figure as a tuple (default = (10,10))
-        savePlot : set to True to create a PDF of the plot in the Output folder (default = True)
-        fileName : name of the file being saved, if savePlot == True (default = 'stressPlot.pdf')
+        savePlot : set to True to save the plot to fileName (default = True)
+        fileName : where to save the plot, if savePlot == True (default = 'stressPlot.pdf'). A full path (e.g. os.path.join(FIG_DIR, 'name.pdf')) saves there; a bare name saves in Output/
         stressType : Set to 'sklearn' to use the stress as calculated by the sklearn.Manifold.MDS 
                     module: "The final value of the stress (sum of squared distance of the disparities and the distances for all constrained points)".
 
@@ -2489,8 +2533,7 @@ class MDS_class:
 
             ax.set_xlabel('Number of dimensions')
             if savePlot:
-                pathlib.Path('Output').mkdir(parents=True, exist_ok=True) # Recursively creates the directory and does not raise an exception if the directory already exists 
-                figStress.savefig('Output/'+fileName)
+                figStress.savefig(resolveOutputPath(fileName))
 
     def shepardPlot(self, figsize=(6,6), savePlot=True, fileName='shepardPlot.pdf', plotOneToOneLine=False, equalAspect=False):  # Make a Shepard plot
         """
@@ -2504,8 +2547,8 @@ class MDS_class:
         Optional Paramters
         ----------    
         figsize : dimensions of the figure as a tuple (default = (10,10))
-        savePlot : set to True to create a PDF of the plot in the Output folder (default = True)
-        fileName : name of the file being saved, if savePlot == True (default = 'shepardPlot.pdf')
+        savePlot : set to True to save the plot to fileName (default = True)
+        fileName : where to save the plot, if savePlot == True (default = 'shepardPlot.pdf'). A full path (e.g. os.path.join(FIG_DIR, 'name.pdf')) saves there; a bare name saves in Output/
         plotOneToOneLine : set to True to plot a 1:1 line (default = False)
         equalAspect : set to True to display y- and x-axes at the same scale (default = False)
                     
@@ -2525,8 +2568,7 @@ class MDS_class:
         if equalAspect:
             ax.set_aspect('equal')
         if savePlot:
-            pathlib.Path('Output').mkdir(parents=True, exist_ok=True) # Recursively creates the directory and does not raise an exception if the directory already exists 
-            figShepard.savefig('Output/'+fileName)
+            figShepard.savefig(resolveOutputPath(fileName))
 
     def MDSplot(self, figsize=(6,6), savePlot=True, fileName='MDSplot.pdf', plotPie=False, pieSize=0.05, agebins=None, agebinsc=None, pieType='Age', 
         pieCategories=None, df=None, axes=None, colorBy='Default', plotLabels=True, equalAspect=False, stressType='sklearn', colors='Default'):
@@ -2540,8 +2582,8 @@ class MDS_class:
         Optional Paramters
         ----------    
         figsize : dimensions of the figure as a tuple (default = (10,10))
-        savePlot : set to True to create a PDF of the plot in the Output folder (default = True)
-        fileName : name of the file being saved, if savePlot == True (default = 'MDSplot.pdf')
+        savePlot : set to True to save the plot to fileName (default = True)
+        fileName : where to save the plot, if savePlot == True (default = 'MDSplot.pdf'). A full path (e.g. os.path.join(FIG_DIR, 'name.pdf')) saves there; a bare name saves in Output/
         plotPie : set to True to plot pie diagrams (default = False)
         pieSize : set to a value (float) to specify pie size (default = 0.05)
         agebins : used to define age categories for pie plots (default = None)
@@ -2658,8 +2700,7 @@ class MDS_class:
                         ax.text(self.mArray[self.dim-self.min_dim][i][0]+0.01,self.mArray[self.dim-self.min_dim][i][1]+0.01,self.labels[i])
 
             if savePlot:
-                pathlib.Path('Output').mkdir(parents=True, exist_ok=True) # Recursively creates the directory and does not raise an exception if the directory already exists 
-                figMDS.savefig('Output/'+fileName)
+                figMDS.savefig(resolveOutputPath(fileName))
 
         if stressType == 'Stress-1':
             print('Warning: Stress-1 no longer supported. Stress returned by sklearn.manifold.MDS is returned instead')
@@ -2808,7 +2849,7 @@ def MDS(ages, errors, labels, sampleList, metric=False, plotWidth='10', plotHeig
 
     return figMDS, stress
 
-def plotDoubleDating(main_byid_df, sampleList, x1, x2, y1, y2, plotKDE, colorKDE, colorKDEbyAge, plotPDP, colorPDP, colorPDPbyAge, plotHist, b, bw, xdif, width, height, savePlot, agebins, agebinsc, coolingAge='ZHe_Age', coolingAgeErr='ZHe_Age_err', colors='Default'):
+def plotDoubleDating(main_byid_df, sampleList, x1, x2, y1, y2, plotKDE, colorKDE, colorKDEbyAge, plotPDP, colorPDP, colorPDPbyAge, plotHist, b, bw, xdif, width, height, savePlot, agebins, agebinsc, coolingAge='ZHe_Age', coolingAgeErr='ZHe_Age_err', colors='Default', fileName=None):
     """
     Creates a figure where detrital cooling ages are plotted against detrital crystallization ages.
 
@@ -2836,6 +2877,7 @@ def plotDoubleDating(main_byid_df, sampleList, x1, x2, y1, y2, plotKDE, colorKDE
     width : width of the plot
     height : height of the plot
     savePlot : set to True to save the plot as a PDF file
+    fileName : (optional) where to save it; the sample name is added before the extension. Default: Output/DoubleDating_<sample>.pdf
     agebins : array of bin edges in Myr. Format option 1: [age1, age2, age3, etc.]. Format option 2: [[bin1_min, bin1_max],[bin2_min, bin2_max],etc.]
     agebinsc : array of colors that correspond to age bins
     coolingAge : (optional) label for column with cooling ages. Default: 'ZHe_Age'
@@ -3051,11 +3093,12 @@ def plotDoubleDating(main_byid_df, sampleList, x1, x2, y1, y2, plotKDE, colorKDE
         fig.subplots_adjust(wspace=0)
         fig.subplots_adjust(hspace=0)
         if savePlot:
-            pathlib.Path('Output').mkdir(parents=True, exist_ok=True) # Recursively creates the directory and does not raise an exception if the directory already exists 
-            if type(sampleList[0])==tuple:
-                fig.savefig(('Output/DoubleDating_%s' %sampleList[i][1])+('.pdf'))
-            else:
-                fig.savefig(('Output/DoubleDating_%s' %sampleList[i])+('.pdf'))    
+            sampleName = sampleList[i][1] if type(sampleList[0])==tuple else sampleList[i]
+            if fileName is None:
+                fig.savefig(resolveOutputPath('DoubleDating_%s.pdf' % sampleName))
+            else: # One file per sample: insert the sample name before the extension
+                samplePath = pathlib.Path(fileName)
+                fig.savefig(resolveOutputPath(str(samplePath.with_name('%s_%s%s' % (samplePath.stem, sampleName, samplePath.suffix or '.pdf')))))    
     return fig
             
 def exportDist(ages, errors, labels, exportType, cumulative, x1, x2, xdif, bw, fileName, normalize, bw_x=None):
@@ -3073,7 +3116,7 @@ def exportDist(ages, errors, labels, exportType, cumulative, x1, x2, xdif, bw, f
     bw : KDE bandwidth. Options are 'optimizedFixed', 'optimizedVariable', or a number (bandwidth in Myr)
     xdif : interval (Myr) over which distributions are calculated
     normalize : set to True to require distributions to sum to 1
-    fileName : specify name of output CSV file
+    fileName : where to write the CSV. A full path saves there; a bare name saves in Output/
     
     Notes
     -----
@@ -3092,9 +3135,7 @@ def exportDist(ages, errors, labels, exportType, cumulative, x1, x2, xdif, bw, f
             dist[i][j] = round(dist[i][j], 5)
         if normalize and exportType != 'CDF':
             dist[i] = dist[i]/sum(dist[i])      
-    
-    pathlib.Path('Output').mkdir(parents=True, exist_ok=True) # Recursively creates the directory and does not raise an exception if the directory already exists 
-    with open(str('Output/' + fileName), 'w', newline='') as f: #Select the CSV file to save data to
+    with open(resolveOutputPath(fileName), 'w', newline='') as f: #Select the CSV file to save data to
         writer = csv.writer(f)
 
         dataRow = ['Age'] # create an empty array    
@@ -3120,7 +3161,7 @@ def agesErrorsCSV(ages, errors, sampleList, fileName):
     Must be in form for individual samples: ['Sample1', 'Sample2', . . . , etc.].
     Must be in the form for groups of samples: [(['Sample1','Sample2', . . . , etc.], 'Group 1 name'),
                                                 (['Sample1','Sample2', . . . , etc.], 'Group 2 name')]
-    fileName : specify name of output CSV file
+    fileName : where to write the CSV. A full path saves there; a bare name saves in Output/
     
     Notes
     -----
@@ -3130,9 +3171,7 @@ def agesErrorsCSV(ages, errors, sampleList, fileName):
 
     agesErrors = [sorted(list(zip(ages[i], errors[i])), key=lambda d: d[0]) for i in range(len(ages))]
     maxNumGrains = max([len(l) for l in agesErrors])
-
-    pathlib.Path('Output').mkdir(parents=True, exist_ok=True) # Recursively creates the directory and does not raise an exception if the directory already exists 
-    with open(str('Output/' + fileName), 'w', newline='') as f: #Select the CSV file to save data to
+    with open(resolveOutputPath(fileName), 'w', newline='') as f: #Select the CSV file to save data to
         writer = csv.writer(f)
 
         # Write sample name column headings. The extra blank is to take up two columns per sample heading.
@@ -3177,7 +3216,7 @@ def calcComparisonCSV(ages, errors, numGrains, labels, sampleList, calculateSimi
     calculateKuiper : set to True to calculate Vmax and the Kuiper statistic
     calcualteR2 : set to True to calculate the cross-correlation coefficient
     calcualteW2 : set to True to calculate the second Wasserstein distance
-    fileName : specify name of output CSV file
+    fileName : where to write the CSV. A full path saves there; a bare name saves in Output/
     distType : specify the type of relative distribution to compare for similarity, likeness, and cross-correlation calculations. Options: 'PDP' or 'KDE'
     bw : KDE bandwidth. Options are 'optimizedFixed', 'optimizedVariable', or a number (bandwidth in Myr)
     
@@ -3194,9 +3233,7 @@ def calcComparisonCSV(ages, errors, numGrains, labels, sampleList, calculateSimi
             dist = PDPcalcAges(ages, errors, x1=x1, x2=x2, xdif=xdif)[1]
         if distType == 'KDE':
             dist = KDEcalcAges(ages, x1=x1, x2=x2, xdif=xdif, bw=bw, bw_x=bw_x)[1]
-    
-    pathlib.Path('Output').mkdir(parents=True, exist_ok=True) # Recursively creates the directory and does not raise an exception if the directory already exists 
-    with open(str('Output/' + fileName), 'w', newline='') as f: #Select the CSV file to save data to , 'wb'
+    with open(resolveOutputPath(fileName), 'w', newline='') as f: #Select the CSV file to save data to , 'wb'
         writer = csv.writer(f)
         labelRow = ['Label','n']
         for i in range(len(sampleList)):
@@ -3327,9 +3364,7 @@ def weightedMeanCSV(ages, errors, numGrains, labels, fileName='weightedMean.csv'
     -----
     """    
     import csv
-    
-    pathlib.Path('Output').mkdir(parents=True, exist_ok=True) # Recursively creates the directory and does not raise an exception if the directory already exists 
-    with open(str('Output/' + fileName), 'w', newline='') as f: #Select the CSV file to save data to
+    with open(resolveOutputPath(fileName), 'w', newline='') as f: #Select the CSV file to save data to
         writer = csv.writer(f)
         labelRow = ['Sample','Ngrains','Mean','2s internal error','MSWD']
         writer.writerow(labelRow)
@@ -4157,7 +4192,7 @@ def calcMDA_2(sampleList, main_byid_df, analyses_df, samples_df, ages, errors, m
         [('U_ppm', 'less than', 2000)]. Supported operators: 'less than', 'greater than'.
         Default: None (no filtering).
     csvOutput : bool, optional
-        If True, saves MDA results to CSV in the Output/ directory. Default: False.
+        If True, saves MDA results to csvFileName + '.csv' (a bare name saves in Output/). Default: False.
     csvFileName : str, optional
         Base filename (without extension) for CSV output. Default: 'MDA_calcs'.
     plotOutput : bool, optional
@@ -4188,7 +4223,7 @@ def calcMDA_2(sampleList, main_byid_df, analyses_df, samples_df, ages, errors, m
     subplotRange : tuple or 'Default', optional
         (min, max) axis limits for the colorBy subplot. Default: 'Default'.
     savePlot : bool, optional
-        If True, saves each sample's figure as a PDF in the Output/ directory. Default: False.
+        If True, saves each sample's figure as plotFileName + sample + '.pdf' (a bare name saves in Output/). Default: False.
     plotFileName : str, optional
         Base filename prefix for saved plot PDFs. Default: 'MDA_plot'.
 
@@ -4417,11 +4452,10 @@ def calcMDA_2(sampleList, main_byid_df, analyses_df, samples_df, ages, errors, m
         
     # Export CSV
     if csvOutput:
-        pathlib.Path('Output').mkdir(parents=True, exist_ok=True) # Recursively creates the directory and does not raise an exception if the directory already exists 
-        dataTable.to_csv('Output/'+str(csvFileName)+'.csv')
+        dataTable.to_csv(resolveOutputPath(str(csvFileName)+'.csv'))
         print('A CSV file with unfiltered MDA results has been saved')
         if filters is not None:
-            dataTable_filter.to_csv('Output/'+str(csvFileName)+'_filtered.csv')
+            dataTable_filter.to_csv(resolveOutputPath(str(csvFileName)+'_filtered.csv'))
             print('A CSV file with filtered MDA results has been saved')
 
     # Plot results
@@ -4873,6 +4907,5 @@ def calcMDA_2(sampleList, main_byid_df, analyses_df, samples_df, ages, errors, m
                         ax[0].axvline(axline[i], linestyle='--', color='black')
                         
             if savePlot:
-                pathlib.Path('Output').mkdir(parents=True, exist_ok=True) # Recursively creates the directory and does not raise an exception if the directory already exists 
-                fig.savefig('Output/'+str(plotFileName)+str(sampleList[i])+'.pdf')
+                fig.savefig(resolveOutputPath(str(plotFileName)+str(sampleList[i])+'.pdf'))
     return fig
