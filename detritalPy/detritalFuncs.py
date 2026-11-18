@@ -642,13 +642,13 @@ def plotAll_1(sampleList, ages, errors, numGrains, labels, whatToPlot, plotCDF, 
                 axs['0,{}'.format(h+1)].get_yaxis().set_visible(True)
             else:
                 axs['0,{}'.format(h+1)].set_xlabel('Age (Ma)')
-            if plotColorBar:
-                if len(np.shape(agebins)) == 1:
-                    for j in range(nage):
-                        axs['0,{}'.format(h+1)].axvspan(xmin=agebins[j],xmax=agebins[j+1], color = agebinsc[j], alpha = agebinsc_alpha[j])
-                if len(np.shape(agebins)) == 2:
-                    for j in range(len(agebins)):
-                        axs['0,{}'.format(h+1)].axvspan(xmin=agebins[j][0],xmax=agebins[j][1], color = agebinsc[j], alpha = agebinsc_alpha[j])
+            #if plotColorBar:
+            #    if len(np.shape(agebins)) == 1:
+            #        for j in range(nage):
+            #            axs['0,{}'.format(h+1)].axvspan(xmin=agebins[j],xmax=agebins[j+1], color = agebinsc[j], alpha = agebinsc_alpha[j])
+            #    if len(np.shape(agebins)) == 2:
+            #        for j in range(len(agebins)):
+            #            axs['0,{}'.format(h+1)].axvspan(xmin=agebins[j][0],xmax=agebins[j][1], color = agebinsc[j], alpha = agebinsc_alpha[j])
 
             # Plot depositional age as a vertical line, if selected
             if plotDepoAge:
@@ -727,7 +727,7 @@ def plotAll_1(sampleList, ages, errors, numGrains, labels, whatToPlot, plotCDF, 
                     else:
                         axKDE.set_xlim(x1[h], x2[h])
                     if h == loops-1: # Only plot legend for rightmost plot
-                        axKDE.legend(loc="upper right", prop={'size':8})
+                        axKDE.legend(loc="upper right", prop={'size':12}, handlelength=0, handletextpad=0)
                     # Adjust the y-axis scale, normalize y-axes
                     if normPlots:
                         if KDE_ymax != 'Default': # Warn users that a manual scale will not be used
@@ -882,9 +882,9 @@ def plotAll_1(sampleList, ages, errors, numGrains, labels, whatToPlot, plotCDF, 
                         hist = []
                         for j in range(len(agebins)):
                             hist.append(np.histogram(ages[i],agebins[j])[0][0])
-                    pie = axs['{},{}'.format(i+1,0)].pie(hist, colors=agebinsc, startangle=90, counterclock=False, radius=0.75)
-                    for j in range(len(pie[0])):
-                        pie[0][j].set_alpha(agebinsc_alpha[j])
+                    pie = axs['{},{}'.format(i+1,0)].pie(hist, colors=agebinsc, startangle=90, counterclock=False, radius=1)
+                    #for j in range(len(pie[0])):
+                        #pie[0][j].set_alpha(agebinsc_alpha[j])
                 
                 # Plot colored vertical bars, if selected
                 if plotColorBar:
