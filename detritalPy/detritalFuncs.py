@@ -3599,7 +3599,7 @@ def KDEcalcAges_KDEpy(ages, x1=0, x2=4500, xdif=1, bw=2.5, cumulative=False):
         KDEportion[i] = KDE[i][int(x1/xdif):int((x2+xdif)/xdif)] # Only select the values within the specified plotting age range
     return KDE_age, KDEportion 
 
-def KDEcalcAgesLocalAdapt(ages, x1=0, x2=4500, xdif=1, cumulative=False):
+def KDEcalcAgesGlobalAdapt(ages, x1=0, x2=4500, xdif=1, cumulative=False):
     """
     Computes the KDE for an array of ages using an optimized, fixed kernal bandwidth following Shimazaki and Shinomoto, 2010: Journal of Computational Neuroscience, v. 29, p. 171-182, doi:10.1007/s10827-009-0180-4.
     
@@ -3638,7 +3638,7 @@ def KDEcalcAgesLocalAdapt(ages, x1=0, x2=4500, xdif=1, cumulative=False):
         KDEportion[i] = KDE[i][int(x1/xdif):int((x2+xdif)/xdif)] # Only select the values within the specified plotting age range
     return KDE_age, KDEportion
        
-def KDEcalcAgesGlobalAdapt(ages, x1=0, x2=4500, xdif=1, cumulative=False):
+def KDEcalcAgesLocalAdapt(ages, x1=0, x2=4500, xdif=1, cumulative=False):
     """
     Computes the KDE for an array of ages using an optimized, variable kernal bandwidth following Shimazaki and Shinomoto, 2010: Journal of Computational Neuroscience, v. 29, p. 171-182, doi:10.1007/s10827-009-0180-4.
     
