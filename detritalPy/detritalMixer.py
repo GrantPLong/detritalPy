@@ -2412,7 +2412,7 @@ def plotMix(main_byid_df, parent_list, child_list,
     plt.subplots_adjust(hspace=0, wspace=0.75)
 
     # Make the CDF plot
-    CDF_age, CDF_p = dFunc.CDFcalcAges(ages=ages_p, x1=x1, x2=x2, xdif=xdif)
+    CDF_age, CDF_p = dFunc.CDFcalcAges(ages=ages_p, x1=xaxis_1, x2=xaxis_2, xdif=xdif)
     CDF_p_min = np.min(CDF_p, axis=0)
     CDF_p_max = np.max(CDF_p, axis=0)
 
@@ -2423,7 +2423,7 @@ def plotMix(main_byid_df, parent_list, child_list,
             axs['{},0'.format(i+1)].pie([1], colors=[parent_colors[i]], normalize=True)
     axs['0,1'].legend(loc=(1.02, 0))
 
-    CDF_age, CDF_c = dFunc.CDFcalcAges(ages=ages_c, x1=x1, x2=x2, xdif=xdif)
+    CDF_age, CDF_c = dFunc.CDFcalcAges(ages=ages_c, x1=xaxis_1, x2=xaxis_2, xdif=xdif)
     for i in range(len(child_list)):
         axsC.plot(CDF_age, CDF_c[i], color=child_colors[i], lw=CDFlw_c, ls=lineStyleMe(i, line_style), label=labels_c[i])
     axsC.legend(loc='lower right')
@@ -2432,7 +2432,7 @@ def plotMix(main_byid_df, parent_list, child_list,
     if plotType != 'KDE' and plotType != 'PDP':
         print('Warning: plotType should equal KDE or PDP')
     if plotType == 'KDE':
-        KDE_age, KDE_p = dFunc.KDEcalcAges(ages=ages_p, x1=x1, x2=x2, xdif=xdif, bw=bw, bw_x=bw_x, cumulative=False)           
+        KDE_age, KDE_p = dFunc.KDEcalcAges(ages=ages_p, x1=xaxis_1, x2=xaxis_2, xdif=xdif, bw=bw, bw_x=bw_x, cumulative=False)           
         for i in range(len(parent_list)):
             axs['{},1'.format(i+1)].plot(KDE_age, KDE_p[i], color='black', lw=KDElw, label=labels_p[i])
             axs['{},1'.format(i+1)].set_ylim(0,)
@@ -2445,7 +2445,7 @@ def plotMix(main_byid_df, parent_list, child_list,
                 axs['{},1'.format(i+1)].fill_between(KDE_age, KDE_p[i], color=parent_colors[i])
 
     if plotType =='PDP':
-        PDP_age, PDP_p = dFunc.PDPcalcAges(ages=ages_p, errors=errors_p, x1=x1, x2=x2, xdif=xdif, cumulative=False)
+        PDP_age, PDP_p = dFunc.PDPcalcAges(ages=ages_p, errors=errors_p, x1=xaxis_1, x2=xaxis_2, xdif=xdif, cumulative=False)
         for i in range(len(parent_list)):
             axs['{},1'.format(i+1)].plot(PDP_age, PDP_p[i], color='black', lw=PDPlw, label=parent_colors[i])
             axs['{},1'.format(i+1)].set_ylim(0,)
@@ -2459,7 +2459,7 @@ def plotMix(main_byid_df, parent_list, child_list,
 
     # Make the relative age distribution plot for the children
     if plotType == 'KDE':
-        KDE_age, KDE_c = dFunc.KDEcalcAges(ages=ages_c, x1=x1, x2=x2, xdif=xdif, bw=bw, bw_x=bw_x, cumulative=False)               
+        KDE_age, KDE_c = dFunc.KDEcalcAges(ages=ages_c, x1=xaxis_1, x2=xaxis_2, xdif=xdif, bw=bw, bw_x=bw_x, cumulative=False)               
         for i in range(len(child_list)):
             axs['{},1'.format(len(parent_list)+i+1)].plot(KDE_age, KDE_c[i], color=child_colors[i], lw=KDElw, label=labels_c[i])
             axs['{},1'.format(len(parent_list)+i+1)].text(0.98,0.92, s=labels_c[i], transform=axs['{},1'.format(len(parent_list)+i+1)].transAxes,
@@ -2484,7 +2484,7 @@ def plotMix(main_byid_df, parent_list, child_list,
         axs['{},1'.format(len(parent_list)+i+1)].set_xlabel('Age (Ma)')
 
     if plotType =='PDP':
-        PDP_age, PDP_c = dFunc.PDPcalcAges(ages=ages_c, errors=errors_c, x1=x1, x2=x2, xdif=xdif, cumulative=False)
+        PDP_age, PDP_c = dFunc.PDPcalcAges(ages=ages_c, errors=errors_c, x1=xaxis_1, x2=xaxis_2, xdif=xdif, cumulative=False)
         for i in range(len(child_list)):
             axs['{},1'.format(len(parent_list)+i+1)].plot(PDP_age, PDP_c[i], color=child_colors[i], lw=PDPlw, label=labels_c[i])
             axs['{},1'.format(len(parent_list)+i+1)].set_ylim(0,)
