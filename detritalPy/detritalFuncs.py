@@ -2628,7 +2628,7 @@ class MDS_class:
                                 y = [0] + np.sin(np.linspace(2*math.pi*histP[j], 2*math.pi*histP[j+1], 100)).tolist()
                                 if not equalAspect:
                                     y = [i/vertScaleAdjust for i in y]
-                                ax.fill(np.array(x)*self.pieSize+self.mArray[self.dim-self.min-dim][i][0],np.array(y)*self.pieSize+self.mArray[self.dim-self.min-dim][i][1],facecolor=self.agebinsc[j])
+                                ax.fill(np.array(x)*self.pieSize+self.mArray[self.dim-self.min_dim][i][0],np.array(y)*self.pieSize+self.mArray[self.dim-self.min_dim][i][1],facecolor=self.agebinsc[j])
                     if plotLabels:
                         ax.text(self.mArray[self.dim-self.min_dim][i][0]+self.pieSize/1.5,self.mArray[self.dim-self.min_dim][i][1]+self.pieSize/1.5,self.labels[i])
                 if self.pieType == 'Category':
