@@ -3253,18 +3253,35 @@ def calcComparisonCSV(ages, errors, numGrains, labels, sampleList, calculateSimi
                     dataRow = np.append(dataRow,KSpMatrix[i][j])
                 writer.writerow(dataRow)
 
-        # Calculate the Kuiper Vmax matrix
+        # Calculate the Kuiper Vmax and p-value matrices
         if calculateKuiper:
-            writer.writerow("")        
-            kupierVMatrix = np.empty(shape=(len(sampleList),len(sampleList)))
+            writer.writerow("")
+            kupierVMatrix = np.empty(shape=(len(sampleList), len(sampleList)))  # Vmax
+            kupierPMatrix = np.empty(shape=(len(sampleList), len(sampleList)))  # p-value
+            CDF = CDFcalcAges(ages)   # gridded step CDFs, unchanged from before
+
+            # --- Vmax matrix (compute V and p once, cache p for the block below) ---
             writer.writerow((['Kuiper Vmax']))
-            writer.writerow(labelRow)        
-            CDF = CDFcalcAges(ages)
+            writer.writerow(labelRow)
             for i in range(len(sampleList)):
-                dataRow = [labels[i],numGrains[i]]
+                dataRow = [labels[i], numGrains[i]]
                 for j in range(len(sampleList)):
-                    kupierVMatrix[i][j] = calcKuiper(CDF[1][i],CDF[1][j],len(ages[i]),len(ages[j]))[0]    
-                    dataRow = np.append(dataRow,kupierVMatrix[i][j])
+                    V, p = calcKuiper(CDF[1][i], CDF[1][j],
+                                      len(ages[i]), len(ages[j]))   # now returns both
+                    kupierVMatrix[i][j] = V
+                    kupierPMatrix[i][j] = p
+                    dataRow = np.append(dataRow, kupierVMatrix[i][j])
+                writer.writerow(dataRow)
+
+            # --- p-value matrix (same shape as the K-S p-value block, so
+            #     load_comparison parses it with no reader change) ---
+            writer.writerow("")
+            writer.writerow((['Kuiper p-value']))
+            writer.writerow(labelRow)
+            for i in range(len(sampleList)):
+                dataRow = [labels[i], numGrains[i]]
+                for j in range(len(sampleList)):
+                    dataRow = np.append(dataRow, kupierPMatrix[i][j])
                 writer.writerow(dataRow)
 
         # Calculate the cross-correlation of a relative distribution function
