@@ -22,8 +22,10 @@ AVAILABLE_METRICS = ['dmax','vmax','similarity-pdp','likeness-pdp','r2-pdp', 'si
 
 def _coerce_rng(random_state=None):
     """Return a NumPy random-number generator from a seed or generator."""
-    if random_state is None:
+    if random_state is None or random_state is np.random:
         # Preserve historical behavior, including support for np.random.seed().
+        # Callers pass this function's result down to helpers that call it
+        # again, so it must also accept the np.random module it returns.
         return np.random
     if isinstance(random_state, (np.random.Generator, np.random.RandomState)):
         return random_state
